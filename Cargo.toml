@@ -1,0 +1,11 @@
+[package]
+name = "shive"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shive-derive = { optional = true, path = "libs/shive-derive" }
+
+[features]
+# Provide derive(Service) macro.
+derive = ["shive-derive"]
