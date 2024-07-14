@@ -9,15 +9,16 @@ use crate::{
 
 use super::{error::Error, service_container::ServiceContainer};
 
+/// Service provider providing singleton and unmanaged services
 #[derive(Clone)]
-pub struct RootServiceProvider {
-    pub service_container: ServiceContainer,
+pub struct RootServiceProvider<'a> {
+    pub service_container: &'a ServiceContainer,
     pub singleton_services: Arc<RwLock<HashMap<String, Arc<dyn Service>>>>,
 }
 
-impl RootServiceProvider {
+impl<'a> RootServiceProvider<'a> {
     /// Create service manger from service collection.
-    pub fn new(sc: ServiceContainer) -> Self {
+    pub fn new(sc: &'a ServiceContainer) -> Self {
         Self {
             service_container: sc,
             singleton_services: Arc::new(RwLock::new(HashMap::new())),

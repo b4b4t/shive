@@ -1,7 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use crate::{
-    service::Service, service_definition::ServiceDefinition, service_lifetime::ServiceLifetime,
+    root_service_provider::RootServiceProvider, service::Service,
+    service_definition::ServiceDefinition, service_lifetime::ServiceLifetime,
 };
 
 #[derive(Clone)]
@@ -59,5 +60,10 @@ impl ServiceContainer {
     /// Get ServiceInstance from the service container
     pub fn get_service_definition_from_key(&self, type_name: String) -> Option<&ServiceDefinition> {
         self.service_collection.get(&type_name)
+    }
+
+    /// Get a root service provider to get the singleton and unmanaged services
+    pub fn build(&self) -> RootServiceProvider {
+        RootServiceProvider::new(self)
     }
 }

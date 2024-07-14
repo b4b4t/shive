@@ -13,7 +13,7 @@ use super::{error::Error, service_container::ServiceContainer};
 pub struct ServiceProvider<'a> {
     pub service_container: ServiceContainer,
     pub services: Arc<RwLock<HashMap<String, Arc<dyn Service>>>>,
-    pub root: &'a RootServiceProvider,
+    pub root: &'a RootServiceProvider<'a>,
 }
 
 impl<'a> ServiceProvider<'a> {
