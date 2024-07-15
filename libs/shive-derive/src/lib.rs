@@ -62,7 +62,6 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen_field_names = fields.iter().map(|field| {
         let field_name = &field.ident;
-        let field_type = &field.ty;
         quote! {
             #field_name,
         }

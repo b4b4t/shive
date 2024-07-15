@@ -2,6 +2,13 @@
 name = "shive-derive"
 version = "0.1.0-alpha.1"
 edition = "2021"
+authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
+description = """
+Macro implementation of #[derive(Service)] for Shive
+"""
+homepage = "https://github.com/b4b4t/shive"
+repository = "https://github.com/b4b4t/shive"
+readme = "../../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
