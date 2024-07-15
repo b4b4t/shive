@@ -13,7 +13,7 @@ keywords = ["shive", "ioc", "container", "services"]
 license = "MIT"
 
 [dependencies]
-shive-derive = { optional = true, path = "libs/shive-derive" }
+shive-derive = { optional = true, path = "libs/shive-derive", version = "0.1.0-alpha.1" }
 
 [features]
 # Provide derive(Service) macro.
