@@ -29,6 +29,11 @@ impl ServiceContainer {
         self.add_service::<T>(ServiceLifetime::Scoped, None);
     }
 
+    /// Declare and create a transient instance in the service container.
+    pub fn add_transient<T: Service + 'static>(&mut self) {
+        self.add_service::<T>(ServiceLifetime::Transient, None);
+    }
+
     /// Declare and create an unmanaged instance in the service container.
     pub fn add_unmanaged<T: Service + 'static>(&mut self, instance: T) {
         self.add_service::<T>(ServiceLifetime::Unmanaged, Some(instance));

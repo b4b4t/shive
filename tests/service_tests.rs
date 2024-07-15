@@ -67,6 +67,19 @@ fn get_instance_scoped_ok() {
 }
 
 #[test]
+fn get_instance_transient_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_transient::<TestType>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service: Arc<TestType> = service_provider
+        .get_instance::<TestType>()
+        .expect("Cannot get service");
+
+    assert_eq!(service.is_ok(), true);
+}
+
+#[test]
 fn get_instance_singleton_not_found() {
     let service_container = ServiceContainer::new();
     let service_provider = service_container.build();
