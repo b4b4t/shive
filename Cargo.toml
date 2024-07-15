@@ -2,6 +2,15 @@
 name = "shive"
 version = "0.1.0-alpha.1"
 edition = "2021"
+authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
+description = """
+Shive is lightweight IOC service container writen for the Rust applications
+"""
+homepage = "https://github.com/b4b4t/shive"
+repository = "https://github.com/b4b4t/shive"
+readme = "./README.md"
+keywords = ["shive", "ioc", "container", "services"]
+license = "MIT"
 
 [dependencies]
 shive-derive = { optional = true, path = "libs/shive-derive" }
