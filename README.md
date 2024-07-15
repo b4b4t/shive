@@ -3,13 +3,15 @@
 ## :honeybee: Introduction
 
 Shive, for service hive, is lightweight IOC service container writen for the Rust applications. 
-This is a basic implementatiovn of an IOC that manages the services from a container.
+This is a basic implementation of an IOC which manages the services from a container.
 
 ## :checkered_flag: Installation
 
-To use the library in your project. In the Cargo.toml file, add the following line :
+To use the library in your project, you can add the following line in the Cargo.toml file :
 
-`shive = "0.1"`
+`shive = { version = "0.1.0-alpha.1", features = ["derive"] }`
+
+Work in progress and this is not production ready, please proceed with caution.
 
 ## :rocket: Get started
 
@@ -43,7 +45,7 @@ impl Service for TestService {
 }
 ```
 
-With the `derive` feature, you can simplify this declaration with the `Service` derive macro :
+By using the `derive` feature, you can simplify this declaration with the `Service` derive macro :
 
 ```rust
 #[derive(Service, Clone)]
