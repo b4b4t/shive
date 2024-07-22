@@ -8,5 +8,5 @@ pub trait Service: Send + Sync + 'static {
     where
         Self: Sized;
 
-    fn as_any(&self) -> &dyn Any;
+    fn as_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
 }

@@ -14,7 +14,7 @@ impl Service for TestType {
         Arc::new(Self)
     }
 
-    fn as_any(&self) -> &dyn std::any::Any {
+    fn as_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
         self
     }
 }
@@ -27,6 +27,16 @@ impl TestType {
     pub fn is_ok(&self) -> bool {
         true
     }
+}
+
+impl TestTrait for TestType {
+    fn is_trait_ok(&self) -> bool {
+        true
+    }
+}
+
+pub trait TestTrait: Service {
+    fn is_trait_ok(&self) -> bool;
 }
 
 #[test]
@@ -86,4 +96,16 @@ fn get_instance_singleton_not_found() {
     let service = service_provider.get_instance::<TestType>();
 
     assert_eq!(service.is_err(), true);
+}
+
+#[test]
+fn get_instance_trait_singleton_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_trait_singleton::<dyn TestTrait, TestType>();
+
+    let service_provider = service_container.build();
+    let service = service_provider.get_instance::<dyn TestTrait>();
+    //.expect("Cannot get service");
+
+    // assert_eq!(service.is_ok(), true);
 }

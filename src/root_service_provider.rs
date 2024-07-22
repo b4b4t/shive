@@ -30,22 +30,23 @@ impl<'a> RootServiceProvider<'a> {
         ServiceProvider::new(self)
     }
 
+    pub fn get_trait_instance<T: ?Sized>(&self) {
+        let trait_name = std::any::type_name::<T>().to_string();
+    }
+
     /// Get an instance of the specified type.
     /// Initialize new object depending on the lifetime.
-    pub fn get_instance<T: Send + Sync + Service + Clone + 'static>(
-        &self,
-    ) -> Result<Arc<T>, Error> {
+    pub fn get_instance<T: Send + Sync + 'static>(&self) -> Result<Arc<T>, Error> {
         let type_name = std::any::type_name::<T>().to_string();
-
         let service = Self::get_or_create_instance(self, type_name);
 
         match service {
             Ok(srv) =>
             // Return the created service
             {
-                match srv.as_any().downcast_ref::<T>() {
-                    Some(obj) => Ok(Arc::new(obj.clone())),
-                    None => Err(Error::Internal("Cannot downcast service".to_string())),
+                match Arc::downcast::<T>(srv.as_any()) {
+                    Ok(obj) => Ok(obj),
+                    Err(_) => Err(Error::Internal("Cannot downcast service".to_string())),
                 }
             }
             Err(error) => Err(error),

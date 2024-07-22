@@ -9,6 +9,7 @@ use crate::{
 pub struct ServiceContainer {
     service_collection: HashMap<String, ServiceDefinition>,
     pub unmanaged_services: HashMap<String, Arc<dyn Service>>,
+    pub trait_service_map: HashMap<String, String>,
 }
 
 impl ServiceContainer {
@@ -16,12 +17,18 @@ impl ServiceContainer {
         Self {
             service_collection: HashMap::new(),
             unmanaged_services: HashMap::new(),
+            trait_service_map: HashMap::new(),
         }
     }
 
     /// Declare and create a singleton in the service container.
     pub fn add_singleton<T: Service + 'static>(&mut self) {
         self.add_service::<T>(ServiceLifetime::Singleton, None);
+    }
+
+    /// Declare and create a singleton in the service container.
+    pub fn add_trait_singleton<I: ?Sized, T: Service + 'static>(&mut self) {
+        self.add_trait_service::<I, T>(ServiceLifetime::Singleton, None);
     }
 
     /// Declare and create a scoped instance in the service container.
@@ -37,6 +44,24 @@ impl ServiceContainer {
     /// Declare and create an unmanaged instance in the service container.
     pub fn add_unmanaged<T: Service + 'static>(&mut self, instance: T) {
         self.add_service::<T>(ServiceLifetime::Unmanaged, Some(instance));
+    }
+
+    /// Add a trait service with its lifetime and instance
+    fn add_trait_service<I: ?Sized, T: Service + 'static>(
+        &mut self,
+        lifetime: ServiceLifetime,
+        instance: Option<T>,
+    ) {
+        let trait_name = std::any::type_name::<I>().to_string();
+        let service_name = std::any::type_name::<T>().to_string();
+
+        println!("Add : {} -> {}", trait_name, service_name);
+
+        // Associate the trait with the service
+        self.trait_service_map.insert(trait_name, service_name);
+
+        // Add the service
+        self.add_service::<T>(lifetime, instance);
     }
 
     /// Add a service with its lifetime and instance
