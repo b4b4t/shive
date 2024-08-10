@@ -10,3 +10,7 @@ pub trait Service: Send + Sync + 'static {
 
     fn as_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
 }
+
+pub struct ServiceResolver<T: ?Sized + 'static> {
+    pub as_interface: fn(service: Arc<dyn Any + Sync + Send + 'static>) -> Arc<T>,
+}

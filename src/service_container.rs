@@ -1,15 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{any::Any, collections::HashMap, sync::Arc};
 
 use crate::{
-    root_service_provider::RootServiceProvider, service::Service,
-    service_definition::ServiceDefinition, service_lifetime::ServiceLifetime,
+    root_service_provider::RootServiceProvider,
+    service::{Service, ServiceResolver},
+    service_definition::ServiceDefinition,
+    service_lifetime::ServiceLifetime,
 };
 
-#[derive(Clone)]
 pub struct ServiceContainer {
     service_collection: HashMap<String, ServiceDefinition>,
     pub unmanaged_services: HashMap<String, Arc<dyn Service>>,
-    pub trait_service_map: HashMap<String, String>,
+    pub trait_service_map: HashMap<String, Arc<dyn Any + Send + Sync + 'static>>,
 }
 
 impl ServiceContainer {
@@ -27,8 +28,11 @@ impl ServiceContainer {
     }
 
     /// Declare and create a singleton in the service container.
-    pub fn add_trait_singleton<I: ?Sized, T: Service + 'static>(&mut self) {
-        self.add_trait_service::<I, T>(ServiceLifetime::Singleton, None);
+    pub fn add_trait_singleton<I: ?Sized + Send + Sync + 'static, T: Service + 'static>(
+        &mut self,
+        resolver: ServiceResolver<I>,
+    ) {
+        self.add_trait_service::<I, T>(ServiceLifetime::Singleton, None, resolver);
     }
 
     /// Declare and create a scoped instance in the service container.
@@ -36,9 +40,25 @@ impl ServiceContainer {
         self.add_service::<T>(ServiceLifetime::Scoped, None);
     }
 
+    /// Declare and create a scoped in the service container.
+    pub fn add_trait_scoped<I: ?Sized + Send + Sync + 'static, T: Service + 'static>(
+        &mut self,
+        resolver: ServiceResolver<I>,
+    ) {
+        self.add_trait_service::<I, T>(ServiceLifetime::Scoped, None, resolver);
+    }
+
     /// Declare and create a transient instance in the service container.
     pub fn add_transient<T: Service + 'static>(&mut self) {
         self.add_service::<T>(ServiceLifetime::Transient, None);
+    }
+
+    /// Declare and create a transient in the service container.
+    pub fn add_trait_transient<I: ?Sized + Send + Sync + 'static, T: Service + 'static>(
+        &mut self,
+        resolver: ServiceResolver<I>,
+    ) {
+        self.add_trait_service::<I, T>(ServiceLifetime::Transient, None, resolver);
     }
 
     /// Declare and create an unmanaged instance in the service container.
@@ -46,22 +66,36 @@ impl ServiceContainer {
         self.add_service::<T>(ServiceLifetime::Unmanaged, Some(instance));
     }
 
+    /// Declare and create an unmanaged instance in the service container.
+    pub fn add_trait_unmanaged<I: ?Sized + Send + Sync + 'static, T: Service + 'static>(
+        &mut self,
+        resolver: ServiceResolver<I>,
+        instance: T,
+    ) {
+        self.add_trait_service::<I, T>(ServiceLifetime::Unmanaged, Some(instance), resolver);
+    }
+
     /// Add a trait service with its lifetime and instance
-    fn add_trait_service<I: ?Sized, T: Service + 'static>(
+    fn add_trait_service<I: ?Sized + Send + Sync + 'static, T: Service + 'static>(
         &mut self,
         lifetime: ServiceLifetime,
         instance: Option<T>,
+        resolver: ServiceResolver<I>,
     ) {
         let trait_name = std::any::type_name::<I>().to_string();
-        let service_name = std::any::type_name::<T>().to_string();
-
-        println!("Add : {} -> {}", trait_name, service_name);
-
-        // Associate the trait with the service
-        self.trait_service_map.insert(trait_name, service_name);
+        let service_init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>> =
+            Arc::new(T::init);
+        let service_instance: Option<Arc<dyn Service>> = match instance {
+            Some(service) => Some(Arc::new(service)),
+            None => None,
+        };
 
         // Add the service
-        self.add_service::<T>(lifetime, instance);
+        self.add_keyed_service(&trait_name, lifetime, service_init, service_instance);
+
+        // Add the resolver
+        self.trait_service_map
+            .insert(trait_name, Arc::new(resolver));
     }
 
     /// Add a service with its lifetime and instance
@@ -70,20 +104,33 @@ impl ServiceContainer {
         lifetime: ServiceLifetime,
         instance: Option<T>,
     ) {
-        let service_init = T::init;
+        let service_init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>> =
+            Arc::new(T::init);
         let type_name = std::any::type_name::<T>().to_string();
-
-        let service_definition = ServiceDefinition {
-            init: Arc::new(service_init),
-            lifetime,
+        let service_instance: Option<Arc<dyn Service>> = match instance {
+            Some(service) => Some(Arc::new(service)),
+            None => None,
         };
 
+        self.add_keyed_service(&type_name, lifetime, service_init, service_instance);
+    }
+
+    /// Add a service with its lifetime and instance
+    fn add_keyed_service(
+        &mut self,
+        key: &str,
+        lifetime: ServiceLifetime,
+        init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>>,
+        instance: Option<Arc<dyn Service>>,
+    ) {
+        let service_definition = ServiceDefinition { init, lifetime };
+
         self.service_collection
-            .insert(type_name.to_string(), service_definition);
+            .insert(key.to_string(), service_definition);
 
         if matches!(lifetime, ServiceLifetime::Unmanaged) && instance.is_some() {
             self.unmanaged_services
-                .insert(type_name, Arc::new(instance.unwrap()));
+                .insert(key.to_string(), instance.unwrap());
         }
     }
 

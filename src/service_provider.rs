@@ -4,14 +4,15 @@ use std::{
 };
 
 use crate::{
-    root_service_provider::RootServiceProvider, service::Service, service_lifetime::ServiceLifetime,
+    root_service_provider::RootServiceProvider,
+    service::{Service, ServiceResolver},
+    service_lifetime::ServiceLifetime,
 };
 
-use super::{error::Error, service_container::ServiceContainer};
+use super::error::Error;
 
 #[derive(Clone)]
 pub struct ServiceProvider<'a> {
-    pub service_container: ServiceContainer,
     pub services: Arc<RwLock<HashMap<String, Arc<dyn Service>>>>,
     pub root: &'a RootServiceProvider<'a>,
 }
@@ -20,7 +21,6 @@ impl<'a> ServiceProvider<'a> {
     /// Create service manger from service collection.
     pub fn new(root: &'a RootServiceProvider) -> Self {
         ServiceProvider {
-            service_container: root.service_container.clone(),
             services: Arc::new(RwLock::new(HashMap::new())),
             root,
         }
@@ -44,10 +44,35 @@ impl<'a> ServiceProvider<'a> {
         }
     }
 
+    pub fn get_trait_instance<T: ?Sized + Send + Sync + 'static>(&self) -> Result<Arc<T>, Error> {
+        let trait_name = std::any::type_name::<T>();
+        let service_name = self
+            .root
+            .service_container
+            .trait_service_map
+            .get(trait_name);
+
+        return match service_name {
+            Some(type_name) => {
+                // Get or create service
+                let service = Self::get_or_create_instance(self, trait_name.to_string());
+
+                // Get service resolver
+                let service_resolver = type_name
+                    .downcast_ref::<ServiceResolver<T>>()
+                    .expect("Cannot get service resolver");
+
+                Ok((service_resolver.as_interface)(service.unwrap().as_any()))
+            }
+            None => Err(Error::Internal("Cannot downcast service".to_string())),
+        };
+    }
+
     /// Get or create an instance
     pub fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
         // Get service definition
         let service_definition = self
+            .root
             .service_container
             .get_service_definition_from_key(type_name.clone());
 
