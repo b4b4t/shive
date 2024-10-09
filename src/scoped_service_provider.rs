@@ -12,15 +12,15 @@ use crate::{
 use super::error::Error;
 
 #[derive(Clone)]
-pub struct ServiceProvider<'a> {
+pub struct ScopedServiceProvider<'a> {
     pub services: Arc<RwLock<HashMap<String, Arc<dyn Service>>>>,
     pub root: &'a RootServiceProvider<'a>,
 }
 
-impl<'a> ServiceProvider<'a> {
+impl<'a> ScopedServiceProvider<'a> {
     /// Create service manger from service collection.
     pub fn new(root: &'a RootServiceProvider) -> Self {
-        ServiceProvider {
+        ScopedServiceProvider {
             services: Arc::new(RwLock::new(HashMap::new())),
             root,
         }

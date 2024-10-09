@@ -1,10 +1,10 @@
 use std::{any::Any, sync::Arc};
 
-use crate::service_provider::ServiceProvider;
+use crate::{error::Error, scoped_service_provider::ScopedServiceProvider};
 
 /// Service trait
 pub trait Service: Send + Sync + 'static {
-    fn init(service_provider: &ServiceProvider) -> Arc<dyn Service>
+    fn init(service_provider: &ScopedServiceProvider) -> Arc<dyn Service>
     where
         Self: Sized;
 

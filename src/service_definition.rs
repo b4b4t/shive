@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use crate::{
-    service::Service, service_lifetime::ServiceLifetime, service_provider::ServiceProvider,
+    scoped_service_provider::ScopedServiceProvider, service::Service,
+    service_lifetime::ServiceLifetime,
 };
 
 #[derive(Clone)]
 pub struct ServiceDefinition {
     pub lifetime: ServiceLifetime,
-    pub init: std::sync::Arc<dyn Fn(&ServiceProvider) -> Arc<dyn Service> + Send + Sync>,
+    pub init: std::sync::Arc<dyn Fn(&ScopedServiceProvider) -> Arc<dyn Service> + Send + Sync>,
 }

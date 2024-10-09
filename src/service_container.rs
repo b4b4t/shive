@@ -83,8 +83,9 @@ impl ServiceContainer {
         resolver: ServiceResolver<I>,
     ) {
         let trait_name = std::any::type_name::<I>().to_string();
-        let service_init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>> =
-            Arc::new(T::init);
+        let service_init: Arc<
+            fn(&crate::scoped_service_provider::ScopedServiceProvider) -> Arc<dyn Service>,
+        > = Arc::new(T::init);
         let service_instance: Option<Arc<dyn Service>> = match instance {
             Some(service) => Some(Arc::new(service)),
             None => None,
@@ -104,8 +105,9 @@ impl ServiceContainer {
         lifetime: ServiceLifetime,
         instance: Option<T>,
     ) {
-        let service_init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>> =
-            Arc::new(T::init);
+        let service_init: Arc<
+            fn(&crate::scoped_service_provider::ScopedServiceProvider) -> Arc<dyn Service>,
+        > = Arc::new(T::init);
         let type_name = std::any::type_name::<T>().to_string();
         let service_instance: Option<Arc<dyn Service>> = match instance {
             Some(service) => Some(Arc::new(service)),
@@ -120,7 +122,7 @@ impl ServiceContainer {
         &mut self,
         key: &str,
         lifetime: ServiceLifetime,
-        init: Arc<fn(&crate::service_provider::ServiceProvider) -> Arc<dyn Service>>,
+        init: Arc<fn(&crate::scoped_service_provider::ScopedServiceProvider) -> Arc<dyn Service>>,
         instance: Option<Arc<dyn Service>>,
     ) {
         let service_definition = ServiceDefinition { init, lifetime };

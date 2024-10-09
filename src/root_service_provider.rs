@@ -4,9 +4,9 @@ use std::{
 };
 
 use crate::{
+    scoped_service_provider::ScopedServiceProvider,
     service::{Service, ServiceResolver},
     service_lifetime::ServiceLifetime,
-    service_provider::ServiceProvider,
 };
 
 use super::{error::Error, service_container::ServiceContainer};
@@ -28,8 +28,8 @@ impl<'a> RootServiceProvider<'a> {
     }
 
     /// Create service manger from service collection.
-    pub fn create_scope(&self) -> ServiceProvider {
-        ServiceProvider::new(self)
+    pub fn create_scope(&self) -> ScopedServiceProvider {
+        ScopedServiceProvider::new(self)
     }
 
     pub fn get_trait_instance<T: ?Sized + Send + Sync + 'static>(&self) -> Result<Arc<T>, Error> {
@@ -126,7 +126,7 @@ impl<'a> RootServiceProvider<'a> {
 
             // Create a new service instance
             let init = service_definition.init.clone();
-            let service = init(&ServiceProvider::new(self));
+            let service = init(&ScopedServiceProvider::new(self));
 
             // Add new instance for scoped and singleton
             self.singleton_services
