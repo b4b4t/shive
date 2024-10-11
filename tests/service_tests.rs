@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use shive::scoped_service_provider::ScopedServiceProvider;
-use shive::service::ServiceResolver;
+use shive::service::{get_instance, get_trait_instance, ServiceProvider, ServiceResolver};
 use shive::{service::Service, service_container::ServiceContainer};
 
 pub trait TestTrait: Sync + Send + 'static {
@@ -12,7 +11,7 @@ pub trait TestTrait: Sync + Send + 'static {
 pub struct TestType;
 
 impl Service for TestType {
-    fn init(_: &ScopedServiceProvider) -> Arc<dyn Service>
+    fn init(_: &dyn ServiceProvider) -> Arc<dyn Service>
     where
         Self: Sized,
     {
@@ -53,14 +52,12 @@ pub struct TestTypeCaller {
 }
 
 impl Service for TestTypeCaller {
-    fn init(service_provider: &ScopedServiceProvider) -> Arc<dyn Service>
+    fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
     where
         Self: Sized,
     {
         Arc::new(Self {
-            test_type: service_provider
-                .get_instance::<TestType>()
-                .expect("Cannot get TestType"),
+            test_type: get_instance::<TestType>(service_provider).expect("Cannot get TestType"),
         })
     }
 
@@ -80,9 +77,7 @@ fn get_instance_singleton_ok() {
     let mut service_container = ServiceContainer::new();
     service_container.add_singleton::<TestType>();
     let service_provider = service_container.build();
-    let service = service_provider
-        .get_instance::<TestType>()
-        .expect("Cannot get service");
+    let service = get_instance::<TestType>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_ok(), true);
 }
@@ -92,9 +87,7 @@ fn get_instance_unmanaged_ok() {
     let mut service_container = ServiceContainer::new();
     service_container.add_unmanaged::<TestType>(TestType::new());
     let service_provider = service_container.build();
-    let service = service_provider
-        .get_instance::<TestType>()
-        .expect("Cannot get service");
+    let service = get_instance::<TestType>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_ok(), true);
 }
@@ -105,9 +98,8 @@ fn get_instance_scoped_ok() {
     service_container.add_scoped::<TestType>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service: Arc<TestType> = service_provider
-        .get_instance::<TestType>()
-        .expect("Cannot get service");
+    let service: Arc<TestType> =
+        get_instance::<TestType>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_ok(), true);
 }
@@ -118,9 +110,8 @@ fn get_instance_transient_ok() {
     service_container.add_transient::<TestType>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service: Arc<TestType> = service_provider
-        .get_instance::<TestType>()
-        .expect("Cannot get service");
+    let service: Arc<TestType> =
+        get_instance::<TestType>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_ok(), true);
 }
@@ -129,7 +120,7 @@ fn get_instance_transient_ok() {
 fn get_instance_singleton_not_found() {
     let service_container = ServiceContainer::new();
     let service_provider = service_container.build();
-    let service = service_provider.get_instance::<TestType>();
+    let service = get_instance::<TestType>(&service_provider);
 
     assert_eq!(service.is_err(), true);
 }
@@ -142,9 +133,8 @@ fn get_instance_trait_singleton_ok() {
     };
     service_container.add_trait_singleton::<dyn TestTrait, TestType>(service_resolver);
     let service_provider = service_container.build();
-    let service = service_provider
-        .get_trait_instance::<dyn TestTrait>()
-        .expect("Cannot get service");
+    let service =
+        get_trait_instance::<dyn TestTrait>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_trait_ok(), true);
 }
@@ -158,9 +148,8 @@ fn get_instance_trait_unmanaged_ok() {
     service_container
         .add_trait_unmanaged::<dyn TestTrait, TestType>(service_resolver, TestType::new());
     let service_provider = service_container.build();
-    let service = service_provider
-        .get_trait_instance::<dyn TestTrait>()
-        .expect("Cannot get service");
+    let service =
+        get_trait_instance::<dyn TestTrait>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_trait_ok(), true);
 }
@@ -174,9 +163,8 @@ fn get_instance_trait_scoped_ok() {
     service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = service_provider
-        .get_trait_instance::<dyn TestTrait>()
-        .expect("Cannot get service");
+    let service =
+        get_trait_instance::<dyn TestTrait>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_trait_ok(), true);
 }
@@ -190,9 +178,8 @@ fn get_instance_trait_transient_ok() {
     service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = service_provider
-        .get_trait_instance::<dyn TestTrait>()
-        .expect("Cannot get service");
+    let service =
+        get_trait_instance::<dyn TestTrait>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_trait_ok(), true);
 }
@@ -204,25 +191,20 @@ fn get_instance_trait_scoped_from_scoped_ok() {
     service_container.add_scoped::<TestTypeCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = service_provider
-        .get_instance::<TestTypeCaller>()
-        .expect("Cannot get service");
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_call_ok(), true);
 }
 
 #[test]
+#[should_panic]
 fn get_instance_trait_scoped_from_singleton_ko() {
     let mut service_container = ServiceContainer::new();
     service_container.add_scoped::<TestType>();
     service_container.add_singleton::<TestTypeCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = service_provider
-        .get_instance::<TestTypeCaller>()
-        .expect("Cannot get service");
-
-    assert_eq!(service.is_call_ok(), false);
+    let _ = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
 }
 
 #[test]
@@ -232,9 +214,80 @@ fn get_instance_trait_scoped_from_transient_ok() {
     service_container.add_transient::<TestTypeCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = service_provider
-        .get_instance::<TestTypeCaller>()
-        .expect("Cannot get service");
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+fn get_instance_trait_singleton_from_singleton_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_singleton::<TestType>();
+    service_container.add_singleton::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+fn get_instance_trait_singleton_from_scoped_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_singleton::<TestType>();
+    service_container.add_scoped::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+fn get_instance_trait_singleton_from_transient_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_singleton::<TestType>();
+    service_container.add_transient::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+fn get_instance_trait_transient_from_transient_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_transient::<TestType>();
+    service_container.add_transient::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+fn get_instance_trait_transient_from_scoped_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_transient::<TestType>();
+    service_container.add_scoped::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+
+    assert_eq!(service.is_call_ok(), true);
+}
+
+#[test]
+#[should_panic]
+fn get_instance_trait_transient_from_singleton_ok() {
+    let mut service_container = ServiceContainer::new();
+    service_container.add_transient::<TestType>();
+    service_container.add_singleton::<TestTypeCaller>();
+    let root_provider = service_container.build();
+    let service_provider = root_provider.create_scope();
+    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
 
     assert_eq!(service.is_call_ok(), true);
 }

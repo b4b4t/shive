@@ -33,11 +33,11 @@ impl Service for TestService {
         self
     }
 
-    fn init(service_provider: &ServiceProvider) -> Arc<dyn Service>
+    fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
     where
         Self: Sized,
     {
-        let test_repository = ServiceManager::get_instance::<TestRepository>(service_provider)
+        let test_repository = get_instance::<TestRepository>(service_provider)
             .expect("Error to retrieve instance");
 
         Arc::new(Self { test_repository })
@@ -112,5 +112,5 @@ A service can be get from a service provider with the `get_instance` method.
 Example :
 
 ``` rust
-let service = service_provider.get_instance::<TestType>();
+let service = get_instance::<TestType>();
 ```

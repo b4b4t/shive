@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     scoped_service_provider::ScopedServiceProvider,
-    service::{Service, ServiceResolver},
+    service::{Service, ServiceProvider},
     service_lifetime::ServiceLifetime,
 };
 
@@ -31,47 +31,14 @@ impl<'a> RootServiceProvider<'a> {
     pub fn create_scope(&self) -> ScopedServiceProvider {
         ScopedServiceProvider::new(self)
     }
+}
 
-    pub fn get_trait_instance<T: ?Sized + Send + Sync + 'static>(&self) -> Result<Arc<T>, Error> {
-        let trait_name = std::any::type_name::<T>();
-        let service_name = self.service_container.trait_service_map.get(trait_name);
-
-        return match service_name {
-            Some(type_name) => {
-                // Get or create service
-                let service = Self::get_or_create_instance(self, trait_name.to_string());
-
-                // Get service resolver
-                let service_resolver = type_name
-                    .downcast_ref::<ServiceResolver<T>>()
-                    .expect("Cannot get service resolver");
-
-                Ok((service_resolver.as_interface)(service.unwrap().as_any()))
-            }
-            None => Err(Error::Internal("Cannot downcast service".to_string())),
-        };
+impl<'a> ServiceProvider<'a> for RootServiceProvider<'a> {
+    fn as_service_provider(&'a self) -> &'a dyn ServiceProvider<'a> {
+        self
     }
 
-    /// Get an instance of the specified type.
-    /// Initialize new object depending on the lifetime.
-    pub fn get_instance<T: Service + Send + Sync + 'static>(&self) -> Result<Arc<T>, Error> {
-        let type_name = std::any::type_name::<T>().to_string();
-        let service = Self::get_or_create_instance(self, type_name);
-
-        match service {
-            Ok(srv) =>
-            // Return the created service
-            {
-                match Arc::downcast::<T>(srv.as_any()) {
-                    Ok(obj) => Ok(obj),
-                    Err(_) => Err(Error::Internal("Cannot downcast service".to_string())),
-                }
-            }
-            Err(error) => Err(error),
-        }
-    }
-
-    pub fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
+    fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
         // Get service definition
         let service_definition = self
             .service_container
@@ -126,7 +93,7 @@ impl<'a> RootServiceProvider<'a> {
 
             // Create a new service instance
             let init = service_definition.init.clone();
-            let service = init(&ScopedServiceProvider::new(self));
+            let service = init(self);
 
             // Add new instance for scoped and singleton
             self.singleton_services
@@ -143,5 +110,9 @@ impl<'a> RootServiceProvider<'a> {
                 type_name
             )));
         }
+    }
+
+    fn get_service_container(&self) -> &ServiceContainer {
+        self.service_container
     }
 }

@@ -52,8 +52,8 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
 
         if let Some(inner_ty) = inner_type {
             quote! {
-                let #field_name = ServiceProvider::get_instance::<#inner_ty>(service_provider)
-                    .expect("Cannot get database context from service manager");
+                let #field_name = get_instance::<#inner_type>(service_provider)
+                    .expect("Cannot get #inner_type from service manager");
             }
         } else {
             unimplemented!("Struct property type must be inside an Arc")
@@ -69,7 +69,7 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl Service for #name {
-            fn init(service_provider: &ServiceProvider) -> Arc<dyn Service>
+            fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
             where
                 Self: Sized,
             {
