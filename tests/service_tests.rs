@@ -1,7 +1,8 @@
-use std::sync::Arc;
+mod derive_service_tests;
 
 use shive::service::{get_instance, get_trait_instance, ServiceProvider, ServiceResolver};
 use shive::{service::Service, service_container::ServiceContainer};
+use std::sync::Arc;
 
 pub trait TestTrait: Sync + Send + 'static {
     fn is_trait_ok(&self) -> bool;
@@ -198,7 +199,7 @@ fn get_instance_trait_scoped_from_scoped_ok() {
 
 #[test]
 #[should_panic]
-fn get_instance_trait_scoped_from_singleton_ko() {
+fn get_instance_trait_scoped_from_singleton_should_panic() {
     let mut service_container = ServiceContainer::new();
     service_container.add_scoped::<TestType>();
     service_container.add_singleton::<TestTypeCaller>();
@@ -281,7 +282,7 @@ fn get_instance_trait_transient_from_scoped_ok() {
 
 #[test]
 #[should_panic]
-fn get_instance_trait_transient_from_singleton_ok() {
+fn get_instance_trait_transient_from_singleton_should_panic() {
     let mut service_container = ServiceContainer::new();
     service_container.add_transient::<TestType>();
     service_container.add_singleton::<TestTypeCaller>();
