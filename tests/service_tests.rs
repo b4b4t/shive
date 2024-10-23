@@ -32,10 +32,6 @@ impl TestType {
     pub fn is_ok(&self) -> bool {
         true
     }
-
-    // pub fn as_interface(&self) -> Arc<&dyn TestTrait> {
-    //     Arc::new(self)
-    // }
 }
 
 impl TestType {
