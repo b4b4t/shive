@@ -1,4 +1,5 @@
 pub mod error;
+pub mod macros;
 pub mod root_service_provider;
 pub mod scoped_service_provider;
 pub mod service;

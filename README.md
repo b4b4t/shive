@@ -104,6 +104,12 @@ let service_resolver = ServiceResolver::<dyn TestTrait> {
 };
 ```
 
+or
+
+```rust
+let service_resolver = create_resolver!(dyn TestTrait, TestType);
+```
+
 To declare a service by using a trait, there are equivalent methods to the service declaration :
 
 - singleton : services that have the same lifetime as the container.

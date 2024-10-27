@@ -1,6 +1,9 @@
 mod derive_service_tests;
 
-use shive::service::{get_instance, get_trait_instance, ServiceProvider, ServiceResolver};
+use shive::{
+    create_resolver,
+    service::{get_instance, get_trait_instance, ServiceProvider, ServiceResolver},
+};
 use shive::{service::Service, service_container::ServiceContainer};
 use std::sync::Arc;
 
@@ -66,6 +69,31 @@ impl Service for TestTypeCaller {
 impl TestTypeCaller {
     pub fn is_call_ok(&self) -> bool {
         self.test_type.is_ok()
+    }
+}
+pub struct TestTraitCaller {
+    test_type: Arc<dyn TestTrait>,
+}
+
+impl Service for TestTraitCaller {
+    fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
+    where
+        Self: Sized,
+    {
+        Arc::new(Self {
+            test_type: get_trait_instance::<dyn TestTrait>(service_provider)
+                .expect("Cannot get TestTrait"),
+        })
+    }
+
+    fn as_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
+        self
+    }
+}
+
+impl TestTraitCaller {
+    pub fn is_call_trait_ok(&self) -> bool {
+        self.test_type.is_trait_ok()
     }
 }
 
@@ -154,9 +182,7 @@ fn get_instance_trait_unmanaged_ok() {
 #[test]
 fn get_instance_trait_scoped_ok() {
     let mut service_container = ServiceContainer::new();
-    let service_resolver = ServiceResolver::<dyn TestTrait> {
-        as_interface: |resolver| resolver.downcast::<TestType>().unwrap(),
-    };
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
     service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
@@ -169,9 +195,7 @@ fn get_instance_trait_scoped_ok() {
 #[test]
 fn get_instance_trait_transient_ok() {
     let mut service_container = ServiceContainer::new();
-    let service_resolver = ServiceResolver::<dyn TestTrait> {
-        as_interface: |resolver| resolver.downcast::<TestType>().unwrap(),
-    };
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
     service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
@@ -184,107 +208,116 @@ fn get_instance_trait_transient_ok() {
 #[test]
 fn get_instance_trait_scoped_from_scoped_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_scoped::<TestType>();
-    service_container.add_scoped::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_scoped::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 #[should_panic]
 fn get_instance_trait_scoped_from_singleton_should_panic() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_scoped::<TestType>();
-    service_container.add_singleton::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_singleton::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let _ = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let _ = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 }
 
 #[test]
 fn get_instance_trait_scoped_from_transient_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_scoped::<TestType>();
-    service_container.add_transient::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_transient::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 fn get_instance_trait_singleton_from_singleton_ok() {
-    let mut service_container = ServiceContainer::new();
-    service_container.add_singleton::<TestType>();
-    service_container.add_singleton::<TestTypeCaller>();
+    let mut service_container: ServiceContainer = ServiceContainer::new();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_singleton::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_singleton::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 fn get_instance_trait_singleton_from_scoped_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_singleton::<TestType>();
-    service_container.add_scoped::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_singleton::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_scoped::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 fn get_instance_trait_singleton_from_transient_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_singleton::<TestType>();
-    service_container.add_transient::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_singleton::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_transient::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 fn get_instance_trait_transient_from_transient_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_transient::<TestType>();
-    service_container.add_transient::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_transient::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 fn get_instance_trait_transient_from_scoped_ok() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_transient::<TestType>();
-    service_container.add_scoped::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_scoped::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
 
 #[test]
 #[should_panic]
 fn get_instance_trait_transient_from_singleton_should_panic() {
     let mut service_container = ServiceContainer::new();
-    service_container.add_transient::<TestType>();
-    service_container.add_singleton::<TestTypeCaller>();
+    let service_resolver = create_resolver!(dyn TestTrait, TestType);
+    service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
+    service_container.add_singleton::<TestTraitCaller>();
     let root_provider = service_container.build();
     let service_provider = root_provider.create_scope();
-    let service = get_instance::<TestTypeCaller>(&service_provider).expect("Cannot get service");
+    let service = get_instance::<TestTraitCaller>(&service_provider).expect("Cannot get service");
 
-    assert_eq!(service.is_call_ok(), true);
+    assert_eq!(service.is_call_trait_ok(), true);
 }
