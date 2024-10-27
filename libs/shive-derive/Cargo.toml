@@ -1,6 +1,6 @@
 [package]
 name = "shive-derive"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 edition = "2021"
 authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
 description = """
@@ -17,5 +17,5 @@ license = "MIT"
 proc-macro = true
 
 [dependencies]
-syn = "2.0.66"
-quote = "1.0"
+syn = "2.0.79"
+quote = "1.0.37"

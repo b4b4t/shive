@@ -4,7 +4,9 @@ use std::{
 };
 
 use crate::{
-    service::Service, service_lifetime::ServiceLifetime, service_provider::ServiceProvider,
+    scoped_service_provider::ScopedServiceProvider,
+    service::{Service, ServiceProvider},
+    service_lifetime::ServiceLifetime,
 };
 
 use super::{error::Error, service_container::ServiceContainer};
@@ -26,33 +28,17 @@ impl<'a> RootServiceProvider<'a> {
     }
 
     /// Create service manger from service collection.
-    pub fn create_scope(&self) -> ServiceProvider {
-        ServiceProvider::new(self)
+    pub fn create_scope(&self) -> ScopedServiceProvider {
+        ScopedServiceProvider::new(self)
+    }
+}
+
+impl<'a> ServiceProvider<'a> for RootServiceProvider<'a> {
+    fn as_service_provider(&'a self) -> &'a dyn ServiceProvider<'a> {
+        self
     }
 
-    /// Get an instance of the specified type.
-    /// Initialize new object depending on the lifetime.
-    pub fn get_instance<T: Send + Sync + Service + Clone + 'static>(
-        &self,
-    ) -> Result<Arc<T>, Error> {
-        let type_name = std::any::type_name::<T>().to_string();
-
-        let service = Self::get_or_create_instance(self, type_name);
-
-        match service {
-            Ok(srv) =>
-            // Return the created service
-            {
-                match srv.as_any().downcast_ref::<T>() {
-                    Some(obj) => Ok(Arc::new(obj.clone())),
-                    None => Err(Error::Internal("Cannot downcast service".to_string())),
-                }
-            }
-            Err(error) => Err(error),
-        }
-    }
-
-    pub fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
+    fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
         // Get service definition
         let service_definition = self
             .service_container
@@ -107,7 +93,7 @@ impl<'a> RootServiceProvider<'a> {
 
             // Create a new service instance
             let init = service_definition.init.clone();
-            let service = init(&ServiceProvider::new(self));
+            let service = init(self);
 
             // Add new instance for scoped and singleton
             self.singleton_services
@@ -124,5 +110,9 @@ impl<'a> RootServiceProvider<'a> {
                 type_name
             )));
         }
+    }
+
+    fn get_service_container(&self) -> &ServiceContainer {
+        self.service_container
     }
 }

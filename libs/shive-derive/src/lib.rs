@@ -50,13 +50,24 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
             None
         };
 
-        if let Some(inner_ty) = inner_type {
-            quote! {
-                let #field_name = ServiceProvider::get_instance::<#inner_ty>(service_provider)
-                    .expect("Cannot get database context from service manager");
+        match inner_type {
+            Some(it) => {
+                if let Type::TraitObject(_) = it {
+                    quote! {
+                        let #field_name = shive::service::get_trait_instance::<#inner_type>(service_provider)
+                            .expect("Cannot get trait type from service manager");
+                    }
+                }
+                else {
+                    quote! {
+                        let #field_name = shive::service::get_instance::<#inner_type>(service_provider)
+                            .expect("Cannot get type from service manager");
+                    }
+                }
             }
-        } else {
-            unimplemented!("Struct property type must be inside an Arc")
+            None => {
+                unimplemented!("Struct property type must be inside an Arc")
+            }
         }
     });
 
@@ -69,7 +80,7 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
 
     let gen = quote! {
         impl Service for #name {
-            fn init(service_provider: &ServiceProvider) -> Arc<dyn Service>
+            fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
             where
                 Self: Sized,
             {
@@ -78,7 +89,7 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
                 Arc::new(Self { #(#gen_field_names)* })
             }
 
-            fn as_any(&self) -> &dyn std::any::Any {
+            fn as_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
                 self
             }
         }

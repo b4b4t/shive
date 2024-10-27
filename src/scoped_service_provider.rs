@@ -4,53 +4,35 @@ use std::{
 };
 
 use crate::{
-    root_service_provider::RootServiceProvider, service::Service, service_lifetime::ServiceLifetime,
+    root_service_provider::RootServiceProvider,
+    service::{Service, ServiceProvider},
+    service_lifetime::ServiceLifetime,
 };
 
-use super::{error::Error, service_container::ServiceContainer};
+use super::error::Error;
 
 #[derive(Clone)]
-pub struct ServiceProvider<'a> {
-    pub service_container: ServiceContainer,
+pub struct ScopedServiceProvider<'a> {
     pub services: Arc<RwLock<HashMap<String, Arc<dyn Service>>>>,
     pub root: &'a RootServiceProvider<'a>,
 }
 
-impl<'a> ServiceProvider<'a> {
+impl<'a> ScopedServiceProvider<'a> {
     /// Create service manger from service collection.
     pub fn new(root: &'a RootServiceProvider) -> Self {
-        ServiceProvider {
-            service_container: root.service_container.clone(),
+        ScopedServiceProvider {
             services: Arc::new(RwLock::new(HashMap::new())),
             root,
         }
     }
+}
 
-    /// Get an instance of the specified type.
-    /// Initialize new object depending on the lifetime.
-    pub fn get_instance<T: Send + Sync + Service + Clone + 'static>(
-        &self,
-    ) -> Result<Arc<T>, Error> {
-        let type_name = std::any::type_name::<T>().to_string();
-        let service = Self::get_or_create_instance(self, type_name);
-
-        match service {
-            Ok(srv) => {
-                // Return the created service
-                match srv.as_any().downcast_ref::<T>() {
-                    Some(obj) => Ok(Arc::new(obj.clone())),
-                    None => Err(Error::Internal("Cannot downcast service".to_string())),
-                }
-            }
-            Err(error) => Err(error),
-        }
-    }
-
+impl<'a> ServiceProvider<'a> for ScopedServiceProvider<'a> {
     /// Get or create an instance
-    pub fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
+    fn get_or_create_instance(&self, type_name: String) -> Result<Arc<dyn Service>, Error> {
         // Get service definition
         let service_definition = self
-            .service_container
+            .get_service_container()
             .get_service_definition_from_key(type_name.clone());
 
         if service_definition.is_none() {
@@ -69,7 +51,7 @@ impl<'a> ServiceProvider<'a> {
 
         // Create a new service instance
         let init = service_definition.init.clone();
-        let service = init(self);
+        let service = init(self.as_service_provider());
 
         // Add new instance for scoped and singleton
         match service_definition.lifetime {
@@ -83,5 +65,13 @@ impl<'a> ServiceProvider<'a> {
         }
 
         Ok(service)
+    }
+
+    fn as_service_provider(&'a self) -> &'a dyn ServiceProvider<'a> {
+        self
+    }
+
+    fn get_service_container(&self) -> &crate::service_container::ServiceContainer {
+        self.root.service_container
     }
 }

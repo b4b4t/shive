@@ -33,11 +33,11 @@ impl Service for TestService {
         self
     }
 
-    fn init(service_provider: &ServiceProvider) -> Arc<dyn Service>
+    fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
     where
         Self: Sized,
     {
-        let test_repository = ServiceManager::get_instance::<TestRepository>(service_provider)
+        let test_repository = get_instance::<TestRepository>(service_provider)
             .expect("Error to retrieve instance");
 
         Arc::new(Self { test_repository })
@@ -67,11 +67,13 @@ let mut service_container = ServiceContainer::new();
 ### Declare a service
 
 4 lifetimes that can be declared in the service container :
+
 - singleton : services that have the same lifetime as the container.
 
 ```rust
 service_container.add_singleton::<TestType>();
 ```
+
 - scoped : services that live until the end of the service provider.
 
 ```rust
@@ -82,12 +84,55 @@ service_container.add_scoped::<TestType>();
 
 ```rust
 service_container.add_transient::<TestType>();
+```
+
+- unmanaged : services that are not managed by the service provider. The service is provided manually when it is declared in the container.
+
+```rust
+service_container.add_unmanaged::<TestType>(TestType::new());
+```
+
+### Declare a service by using a trait
+
+To be used as a service, a trait must be assigned to a stuct having its implementation and a resolver has to be created in order to downcast the service.
+
+Example :
+
+```rust
+let service_resolver = ServiceResolver::<dyn TestTrait> {
+    as_interface: |resolver| resolver.downcast::<TestType>().unwrap(),
+};
+```
+
+or
+
+```rust
+let service_resolver = create_resolver!(dyn TestTrait, TestType);
+```
+
+To declare a service by using a trait, there are equivalent methods to the service declaration :
+
+- singleton : services that have the same lifetime as the container.
+
+```rust
+service_container.add_trait_singleton::<dyn TestTrait, TestType>(service_resolver);
+```
+- scoped : services that live until the end of the service provider.
+
+```rust
+service_container.add_trait_scoped::<dyn TestTrait, TestType>(service_resolver);
+```
+
+- transient : services created for each call to the service provider.
+
+```rust
+service_container.add_trait_transient::<dyn TestTrait, TestType>(service_resolver);
 
 ```
 - unmanaged : services that are not managed by the service provider. The service is provided manually when it is declared in the container.
 
 ```rust
-service_container.add_unmanaged::<TestType>(TestType::new());
+service_container.add_trait_unmanaged::<dyn TestTrait, TestType>(service_resolver);
 ```
 
 ### Get a service provider
@@ -112,5 +157,16 @@ A service can be get from a service provider with the `get_instance` method.
 Example :
 
 ``` rust
-let service = service_provider.get_instance::<TestType>();
+let service = get_instance::<TestType>();
+```
+
+### Get a service by using a trait
+
+A service can be get from a service provider with the `get_trait_instance` method.
+
+Example :
+
+``` rust
+let service =
+    get_trait_instance::<dyn TestTrait>(&service_provider).expect("Cannot get service");
 ```

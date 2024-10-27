@@ -1,6 +1,6 @@
 [package]
 name = "shive"
-version = "0.1.0-alpha.1"
+version = "0.1.0-alpha.2"
 edition = "2021"
 authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
 description = """
@@ -13,7 +13,7 @@ keywords = ["shive", "ioc", "container", "services"]
 license = "MIT"
 
 [dependencies]
-shive-derive = { optional = true, path = "libs/shive-derive", version = "0.1.0-alpha.1" }
+shive-derive = { optional = true, version = "0.1.0-alpha.2", path = "./libs/shive-derive" }
 
 [features]
 # Provide derive(Service) macro.
