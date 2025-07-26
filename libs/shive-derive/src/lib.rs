@@ -35,7 +35,7 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
                 if let PathArguments::AngleBracketed(ref args) =
                     type_path.path.segments[0].arguments
                 {
-                    if let Some(GenericArgument::Type(ref inner_ty)) = args.args.first() {
+                    if let Some(GenericArgument::Type(inner_ty)) = args.args.first() {
                         Some(inner_ty)
                     } else {
                         None
@@ -78,9 +78,9 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
         }
     });
 
-    let gen = quote! {
+    let gen_service = quote! {
         impl Service for #name {
-            fn init(service_provider: &dyn ServiceProvider) -> Arc<dyn Service>
+            fn init(service_provider: &dyn shive::service::ServiceResolver) -> Arc<dyn shive::service::Service>
             where
                 Self: Sized,
             {
@@ -95,5 +95,5 @@ fn impl_service_macro(ast: &syn::DeriveInput) -> TokenStream {
         }
     };
 
-    gen.into()
+    gen_service.into()
 }
