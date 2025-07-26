@@ -1,7 +1,7 @@
 [package]
 name = "shive"
-version = "0.1.0-alpha.2"
-edition = "2021"
+version = "0.1.0-alpha.3"
+edition = "2024"
 authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
 description = """
 Shive is lightweight IOC service container writen for the Rust applications
@@ -13,8 +13,11 @@ keywords = ["shive", "ioc", "container", "services"]
 license = "MIT"
 
 [dependencies]
-shive-derive = { optional = true, version = "0.1.0-alpha.2", path = "./libs/shive-derive" }
+shive-derive = { optional = true, version = "0.1.0-alpha.3", path = "./libs/shive-derive" }
 
 [features]
 # Provide derive(Service) macro.
 derive = ["shive-derive"]
+
+[workspace]
+members = ["libs/*"]

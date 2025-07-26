@@ -1,7 +1,7 @@
 [package]
 name = "shive-derive"
-version = "0.1.0-alpha.2"
-edition = "2021"
+version = "0.1.0-alpha.3"
+edition = "2024"
 authors = ["Baptiste Coppéré <baptiste.coppere@netskydev.eu>"]
 description = """
 Macro implementation of #[derive(Service)] for Shive
@@ -17,5 +17,5 @@ license = "MIT"
 proc-macro = true
 
 [dependencies]
-syn = "2.0.79"
-quote = "1.0.37"
+syn = "2.0.104"
+quote = "1.0.40"
