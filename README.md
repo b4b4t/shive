@@ -1,5 +1,7 @@
 # Shive - Services Hive
 
+**This repository has moved to [https://git.netskydev.eu/babat/shive](https://git.netskydev.eu/babat/shive).**
+
 ## :honeybee: Introduction
 
 Shive, for service hive, is lightweight IOC service container writen for the Rust applications. 
